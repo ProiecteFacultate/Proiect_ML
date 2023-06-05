@@ -1,67 +1,98 @@
 import pandas as pd
-import numpy as np
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
 import cv2
-from sklearn.preprocessing import LabelEncoder
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.losses import SparseCategoricalCrossentropy
+import numpy as np
 
-# Setările pentru dimensiunea imaginilor
-IMAGE_WIDTH = 64
-IMAGE_HEIGHT = 64
-IMAGE_CHANNELS = 3
 
-# Calea către fișierele de date
-data_directory = "D:\Facultate\II\S_2\IA\Proiect_ML\Date_Proiect/"
+class Knn_classifier:
+    def __init__(self, train_images, train_labels):
+        # Ex. 1
+        self.train_images = train_images
+        self.train_labels = train_labels
 
-# Încarcă datele de antrenare, validare și test
-train_df = pd.read_csv(data_directory + "train.csv")
-val_df = pd.read_csv(data_directory + "val.csv")
-test_df = pd.read_csv(data_directory + "test.csv")
+    def classify_image(self, test_image, num_neighbors, metric='l2'):
+        if metric == 'l2':    #euclidian
+            distances = np.sqrt(np.sum(np.square(self.train_images - test_image), axis=(1, 2, 3)))
+        elif metric == 'l1':  #manhaattan
+            distances = np.sum(np.abs(self.train_images - test_image), axis=(1, 2, 3))
+        else:
+            raise ValueError()
 
-# Preprocesarea datelor
-le = LabelEncoder()
-train_labels = le.fit_transform(train_df["Class"])
-val_labels = le.transform(val_df["Class"])
+      #  print("DIST")
+      #  print(distances)
+        best_indices = np.argsort(distances)
+    #    print("BEST IND")
+   #     print(best_indices)
+        top_k_indices = best_indices[:num_neighbors].tolist()
+     #   print("TOP INDECES")
+    #    print(top_k_indices)
+        tok_k_labels = np.array(self.train_labels)[top_k_indices].ravel()
+     #   print("TOP LABELS")
+     #   print(tok_k_labels)
+        counts = np.bincount(tok_k_labels)
+     #   print("COUNTS")
+    #    print(counts)
+        pred_label = np.argmax(counts)
 
-# Funcție pentru încărcarea și redimensionarea imaginilor
-def load_and_preprocess_image(image_file):
-    image = cv2.imread(image_file)
-    image = cv2.resize(image, (IMAGE_WIDTH, IMAGE_HEIGHT))
-    image = image / 255.0  # Normalizare
-    return image
+        return pred_label
 
-# Procesarea imaginilor de antrenare
-train_images = np.array([load_and_preprocess_image(data_directory + "train_images/" + image_file) for image_file in train_df["Image"]])
+    def classify_images(self, test_images, num_neighbors, metric='l2'):
+        num_test_images = test_images.shape[0]
+        predicted_labels = np.zeros((num_test_images), np.int8)
 
-# Procesarea imaginilor de validare
-val_images = np.array([load_and_preprocess_image(data_directory + "val_images/" + image_file) for image_file in val_df["Image"]])
+        for i in range(num_test_images):
+            predicted_labels[i] = self.classify_image(test_images[i, :], num_neighbors=num_neighbors, metric=metric)
 
-# Procesarea imaginilor de test
-test_images = np.array([load_and_preprocess_image(data_directory + "test_images/" + image_file) for image_file in test_df["Image"]])
+        return predicted_labels
 
-# Definirea arhitecturii modelului CNN
-model = Sequential()
-model.add(Conv2D(32, (3, 3), activation="relu", input_shape=(IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS)))
-model.add(MaxPooling2D((2, 2)))
-model.add(Conv2D(64, (3, 3), activation="relu"))
-model.add(MaxPooling2D((2, 2)))
-model.add(Conv2D(128, (3, 3), activation="relu"))
-model.add(MaxPooling2D((2, 2)))
-model.add(Flatten())
-model.add(Dense(128, activation="relu"))
-model.add(Dense(96, activation="softmax"))
+    def accuracy_score(self, y_pred, y_true):
+        return np.sum(y_pred == y_true) / len(y_pred)
 
-# Compilarea modelului
-model.compile(optimizer=Adam(), loss=SparseCategoricalCrossentropy(), metrics=["accuracy"])
 
-# Antrenarea modelului
-model.fit(train_images, train_labels, batch_size=32, epochs=10, validation_data=(val_images, val_labels))
+def setup():
+    global data_directory, train_images, train_csv, val_csv, test_csv, train_labels, val_labels
+    data_directory = "D:\Facultate\II\S_2\IA\Proiect_ML\Date_Proiect/"  # unde am salvate fisierele cu imagini si csvurile
 
-# Evaluarea modelului pe setul de test
-test_predictions = np.argmax(model.predict(test_images), axis=-1)
+    train_csv = pd.read_csv(data_directory + "train.csv")
+    val_csv = pd.read_csv(data_directory + "val.csv")
+    test_csv = pd.read_csv(data_directory + "test.csv")
 
-# Salvarea rezultatelor într-un fișier de submisie
-submission_df = pd.DataFrame({"Image": test_df["Image"], "Class": le.inverse_transform(test_predictions)})
+    train_labels = train_csv["Class"]
+    val_labels = val_csv["Class"]
+
+
+setup()
+train_images = []
+train_labels = []
+for image_file, label in zip(train_csv["Image"], train_csv["Class"]):
+    image = cv2.imread(data_directory + "train_images/" + image_file)
+    image_as_array = np.array(image)
+    train_images.append(image_as_array)
+    train_labels.append(label)
+
+knn_classifier = Knn_classifier(train_images=train_images, train_labels=train_labels)
+
+val_images = []
+val_labels = []
+for image_file, label in zip(val_csv["Image"], val_csv["Class"]):
+    image = cv2.imread(data_directory + "val_images/" + image_file)
+    image_as_array = np.array(image)
+    val_images.append(image_as_array)
+    val_labels.append(label)
+
+test_images = []
+for image_file in test_csv["Image"]:
+    image = cv2.imread(data_directory + "test_images/" + image_file)
+    image_as_array = np.array(image)
+    test_images.append(image_as_array)
+
+val_images = np.array(val_images)    #altfel e list in loc de numpyarray si da eroarea ca nu are attribute shape
+val_predictions = knn_classifier.classify_images(val_images, num_neighbors=81, metric='l2')
+acc_score = knn_classifier.accuracy_score(val_predictions, val_labels)
+print("Accuracy score: " + str(acc_score))
+
+test_images = np.array(test_images)
+test_predictions = knn_classifier.classify_images(test_images, num_neighbors=81, metric='l2')
+submission_df = pd.DataFrame({"Image": test_csv["Image"], "Class": test_predictions})
 submission_df.to_csv(data_directory + "submission.csv", index=False)
