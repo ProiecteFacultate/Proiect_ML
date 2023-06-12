@@ -1,63 +1,75 @@
 import pandas as pd
+from pandas import read_csv
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score
 import cv2
 import numpy as np
+from PIL import Image
 
-def setup():
-    global data_directory, train_images, train_csv, val_csv, test_csv, train_labels, val_labels
-    data_directory = "D:\Facultate\II\S_2\IA\Proiect_ML\Date_Proiect/"  # unde am salvate fisierele cu imagini si csvurile
+def deschiderInitialaDeFisiere():
+    global directorCuDate, CSVdeAntrenare, CSVdeValidare, CSVdeTest, listaClaseCsvDeAntrenament, listaClaseCsvDeValidare
+    directorCuDate = "D:\Facultate\II\S_2\IA\Proiect_ML\Date_Proiect/"  # unde am salvate fisierele cu imagini si csvurile la mine in pc
 
-    train_csv = pd.read_csv(data_directory + "train.csv")
-    val_csv = pd.read_csv(data_directory + "val.csv")
-    test_csv = pd.read_csv(data_directory + "test.csv")
+    CSVdeAntrenare = read_csv(directorCuDate + "train.csv")
+    CSVdeValidare = read_csv(directorCuDate + "val.csv")
+    CSVdeTest = read_csv(directorCuDate + "test.csv")
 
-    train_labels = train_csv["Class"]
-    val_labels = val_csv["Class"]
+    listaClaseCsvDeAntrenament = CSVdeAntrenare["Class"]
+    listaClaseCsvDeValidare = CSVdeValidare["Class"]
 
 
-def value_to_bin(x, bins):
-    x = np.digitize(x, bins)
-    return x - 1
+def transformaListaInValoriDiscrete(lista, nrIntervale):
+    listaDupaTransformare = np.digitize(lista, nrIntervale)  #primeste o lista de valori si le discretizeaza (inlocuieste o valoare cu intervalul din care face parte)
+    listaIndexataDeLaZero = listaDupaTransformare - 1   #digitise are indexarea de la 1 si facem -1 ca sa avem indexare de la 0
+    return listaIndexataDeLaZero
 
-setup()
-train_features = []
+deschiderInitialaDeFisiere()
+valoareMaximaInterval = 256  #255 e val maxima pt ca pixelii au val maxima 255 si facem +1 pt ca e deschis la capete
+nrIntervale = 17   #am ales 16 pt ca am vazut ca da cel mai bun rezultat si am adaugat 1 pt ca deschis la capete
+capeteIntervale = np.linspace(0, valoareMaximaInterval, num=nrIntervale)
 
-for image_file in train_csv["Image"]:
-    image = cv2.imread(data_directory + "train_images/" + image_file)
-    image_as_array = np.array(image)
-    train_features.append(image_as_array.flatten())
+#prelucram datele pt imaginile de antrenare
+trasaturiDateDeAntrenament = []
+listaImaginiCsvDeAntrenament = CSVdeAntrenare["Image"]  #o lista cu numele imaginilor din csvul de antrenament
+for i in range(len(listaImaginiCsvDeAntrenament)):
+    numeImagine = listaImaginiCsvDeAntrenament[i]
+    imagine = Image.open(directorCuDate + "train_images/" + numeImagine)
+    imagineCaNpArray = np.array(imagine)         #vrem sa avem datele legate de pixeli sub forma unui array din numpy
+    trasaturiDateDeAntrenament.append(imagineCaNpArray.flatten())     #folosim flateen ca sa facem arrayul sa fie 1D
 
-bins = np.linspace(0, 255 + 1, num=16 + 1)
-X_train = value_to_bin(train_features, bins)
+valoriPrelucrateAntrenament = transformaListaInValoriDiscrete(trasaturiDateDeAntrenament, capeteIntervale)
 
-val_features = []
-for image_file in val_csv["Image"]:
-    image = cv2.imread(data_directory + "val_images/" + image_file)
-    image_as_array = np.array(image)
-    val_features.append(image_as_array.flatten())
+#prelucram datele pt imaginile de validare
+trasaturiDateDeValidare = []
+listaImaginiCsvDeValidare = CSVdeValidare["Image"]  #o lista cu numele imaginilor din csvul de validare
+for i in range(len(listaImaginiCsvDeValidare)):
+    numeImagine = listaImaginiCsvDeValidare[i]
+    imagine = Image.open(directorCuDate + "val_images/" + numeImagine)
+    imagineCaNpArray = np.array(imagine)
+    trasaturiDateDeValidare.append(imagineCaNpArray.flatten())
 
-bins = np.linspace(0, 255 + 1, num=16 + 1)
-X_val = value_to_bin(val_features, bins)
+valoriPrelucrateValidare = transformaListaInValoriDiscrete(trasaturiDateDeValidare, capeteIntervale)
 
-naive_bayes_model = MultinomialNB()
-naive_bayes_model.fit(X_train, train_labels)
+modelNaiveBayes = MultinomialNB()
+modelNaiveBayes.fit(valoriPrelucrateAntrenament, listaClaseCsvDeAntrenament)
 
-val_predictions = naive_bayes_model.predict(X_val)
-accuracy = accuracy_score(val_labels, val_predictions)
-print("Validation accuracy:", accuracy)
+predictiiValidare = modelNaiveBayes.predict(valoriPrelucrateValidare)
+acuratete = accuracy_score(listaClaseCsvDeValidare, predictiiValidare)
+print("Acuratete de validare: " + str(acuratete))
 
-test_features = []
-for image_file in test_csv["Image"]:
-    image = cv2.imread(data_directory + "test_images/" + image_file)
-    image_as_array = np.array(image)
-    test_features.append(image_as_array.flatten())
+#prelucram datele pt imaginile de test
+trasaturiDateDeTest = []
+listaImaginiCsvDeTest = CSVdeTest["Image"]  #o lista cu numele imaginilor din csvul de test
+for i in range(len(listaImaginiCsvDeTest)):
+    numeImagine = listaImaginiCsvDeTest[i]
+    imagine = Image.open(directorCuDate + "test_images/" + numeImagine)
+    imagineCaNpArray = np.array(imagine)
+    trasaturiDateDeTest.append(imagineCaNpArray.flatten())
 
-bins = np.linspace(0, 255 + 1, num=16 + 1)
-X_test = value_to_bin(test_features, bins)
+valoriPrelucrateTest = transformaListaInValoriDiscrete(trasaturiDateDeTest, capeteIntervale)
 
-test_predictions = naive_bayes_model.predict(X_test)
+predictiiTest = modelNaiveBayes.predict(valoriPrelucrateTest)
 
-submission_df = pd.DataFrame({"Image": test_csv["Image"], "Class": test_predictions})
-submission_df.to_csv(data_directory + "submission.csv", index=False)
+fisierDePredictii = pd.DataFrame({"Image": CSVdeTest["Image"], "Class": predictiiTest})  #face fisierul unde pune clasa care a fost prezisa pt fiecare imagine
+fisierDePredictii.to_csv(directorCuDate + "submission.csv", index=False)
 

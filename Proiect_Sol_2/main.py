@@ -3,6 +3,8 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score
 import cv2
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+
 
 
 class Knn_classifier:
@@ -19,20 +21,10 @@ class Knn_classifier:
         else:
             raise ValueError()
 
-      #  print("DIST")
-      #  print(distances)
         best_indices = np.argsort(distances)
-    #    print("BEST IND")
-   #     print(best_indices)
         top_k_indices = best_indices[:num_neighbors].tolist()
-     #   print("TOP INDECES")
-    #    print(top_k_indices)
         tok_k_labels = np.array(self.train_labels)[top_k_indices].ravel()
-     #   print("TOP LABELS")
-     #   print(tok_k_labels)
         counts = np.bincount(tok_k_labels)
-     #   print("COUNTS")
-    #    print(counts)
         pred_label = np.argmax(counts)
 
         return pred_label
@@ -65,6 +57,7 @@ def setup():
 setup()
 train_images = []
 train_labels = []
+scaler = MinMaxScaler()  # Create a MinMaxScaler instance for normalization
 for image_file, label in zip(train_csv["Image"], train_csv["Class"]):
     image = cv2.imread(data_directory + "train_images/" + image_file)
     image_as_array = np.array(image)
@@ -88,7 +81,7 @@ for image_file in test_csv["Image"]:
     test_images.append(image_as_array)
 
 val_images = np.array(val_images)    #altfel e list in loc de numpyarray si da eroarea ca nu are attribute shape
-val_predictions = knn_classifier.classify_images(val_images, num_neighbors=81, metric='l2')
+val_predictions = knn_classifier.classify_images(val_images, num_neighbors=498, metric='l2')
 acc_score = knn_classifier.accuracy_score(val_predictions, val_labels)
 print("Accuracy score: " + str(acc_score))
 
