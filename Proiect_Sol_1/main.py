@@ -1,9 +1,9 @@
 from pandas import read_csv
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import accuracy_score
 import numpy as np
 from PIL import Image
 import pandas as pd
+
 
 def deschiderInitialaDeFisiere():
     global directorCuDate, CSVdeAntrenare, CSVdeValidare, CSVdeTest, claseCsvDeAntrenament, claseCsvDeValidare, numeImaginiDeAntrenament, numeImaginiDeValidare, numeImaginiDeTest
@@ -57,20 +57,20 @@ def construiesteMatriceaDeConfuzie():   #se face pentru datele de validare
 deschiderInitialaDeFisiere()
 modelNaiveBayes = MultinomialNB()
 valoareMaximaInterval = 256  #255 e val maxima pt ca pixelii au val maxima 255 si facem +1 pt ca e deschis la capete
-nrIntervale = 17   #am ales 16 pt ca am vazut ca da cel mai bun rezultat si am adaugat 1 pt ca deschis la capete
-capeteIntervale = np.linspace(0, valoareMaximaInterval, num=nrIntervale)
+nrIntervale = 17   #am ales 17 pt ca am vazut ca da cel mai bun rezultat
 
-#prelucram datele pt imaginile de antrenare
+capeteIntervale = np.linspace(0, valoareMaximaInterval, num=nrIntervale)
+# prelucram datele pt imaginile de antrenare
 trasaturiDateDeAntrenament = []
 for i in range(len(numeImaginiDeAntrenament)):
     numeImagine = numeImaginiDeAntrenament[i]
     imagine = Image.open(directorCuDate + "train_images/" + numeImagine)
-    imagineCaNpArray = np.array(imagine)         #vrem sa avem datele legate de pixeli sub forma unui array din numpy
-    trasaturiDateDeAntrenament.append(imagineCaNpArray.flatten())     #folosim flateen ca sa facem arrayul sa fie 1D
+    imagineCaNpArray = np.array(imagine)  # vrem sa avem datele legate de pixeli sub forma unui array din numpy
+    trasaturiDateDeAntrenament.append(imagineCaNpArray.flatten())  # folosim flateen ca sa facem arrayul sa fie 1D
 
 trasaturiPrelucrateAntrenament = transformaListaInValoriDiscrete(trasaturiDateDeAntrenament, capeteIntervale)
 
-#prelucram datele pt imaginile de validare
+# prelucram datele pt imaginile de validare
 trasaturiImaginiDeValidare = []
 for i in range(len(numeImaginiDeValidare)):
     numeImagine = numeImaginiDeValidare[i]
@@ -83,7 +83,7 @@ trasaturiPrelucrateValidare = transformaListaInValoriDiscrete(trasaturiImaginiDe
 modelNaiveBayes.fit(trasaturiPrelucrateAntrenament, claseCsvDeAntrenament)
 predictiiValidare = modelNaiveBayes.predict(trasaturiPrelucrateValidare)
 acuratete = calculeazaAcuratete(predictiiValidare, claseCsvDeValidare)
-print("Acuratete de validare pentru " + str(nrIntervale) + " intervale: "  + str(acuratete))
+print("Acuratete de validare pentru " + str(nrIntervale) + " intervale: " + str(acuratete))
 #construiesteMatriceaDeConfuzie()
 
 #prelucram datele pt imaginile de test

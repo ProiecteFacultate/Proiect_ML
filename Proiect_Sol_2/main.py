@@ -26,15 +26,11 @@ def normalizeazaImagine(imagineCaNpArray):
     return imagineNormalizata
 
 
-def classificaOSinguraImagine(tipDistanta, numarVecini, imagineCareTrabuieTestata):
+def classificaOSinguraImagine(numarVecini, imagineCareTrabuieTestata):
     diferenta = trasaturiDateDeAntrenament - imagineCareTrabuieTestata
+    distanta = np.sqrt(np.sum(np.square(diferenta), axis=(1, 2, 3)))  #Euclidian; distanta intre 2 imagini; facem pe 3 axe pt ca imaginea e de forma 12000 x 64 x 64 x 3
 
-    if tipDistanta == 'Euclidian':
-        valoareDistanta = np.sqrt(np.sum(np.square(diferenta), axis=(1, 2, 3)))  # distanta intre 2 imagini; facem pe 3 axe pt ca imaginea e de forma 12000 x 64 x 64 x 3
-    elif tipDistanta == 'Manhattan':
-        valoareDistanta = np.sum(np.abs(diferenta), axis=(1, 2, 3))
-
-    indiciSortati = np.argsort(valoareDistanta)  # indicii celor mai apropiati vecini sunt primii
+    indiciSortati = np.argsort(distanta)  # indicii celor mai apropiati vecini sunt primii
     aparitiiClase = [0 for x in range(96)]
 
     for i in range(numarVecini):
@@ -52,12 +48,12 @@ def classificaOSinguraImagine(tipDistanta, numarVecini, imagineCareTrabuieTestat
     return clasaCuNrMaxDeAparitii
 
 
-def clasificaImagini(tipDistanta, numarVecini, trasaturiImagini):
+def clasificaImagini(numarVecini, trasaturiImagini):
     numarImagini = len(trasaturiImagini)  # trasaturiImagini e de forma nrImagini x nrPixeliPeRand x nrPixeliPeColoana x 3(RGB)
     clasePrezise = []
 
     for i in range(numarImagini):
-        clasaPrezisa = classificaOSinguraImagine(tipDistanta, numarVecini, trasaturiImagini[i])
+        clasaPrezisa = classificaOSinguraImagine(numarVecini, trasaturiImagini[i])
         clasePrezise.append(clasaPrezisa)
 
     return clasePrezise
@@ -118,12 +114,12 @@ for i in range(len(numeImaginiDeTest)):
     imagineNormalizata = normalizeazaImagine(imagineCaNpArray)
     trasaturiDateDeTest.append(imagineNormalizata)
 
-numarVecini = 200
-predictiiValidare = clasificaImagini('Euclidian', numarVecini, trasaturiDateDeValidare)
+numarVecini = 26
+predictiiValidare = clasificaImagini(numarVecini, trasaturiDateDeValidare)
 acuratete = calculeazaAcuratete(predictiiValidare, claseCsvDeValidare)
 print("Acuratete de validare pentru " + str(numarVecini) + ": " + str(acuratete))
 #construiesteMatriceaDeConfuzie()
 
-# predictiiTest = clasificaImagini('Euclidian', 81, trasaturiDateDeTest)
-# fisierDePredictii = pd.DataFrame({"Image": CSVdeTest["Image"], "Class": predictiiTest})  #face fisierul unde pune clasa care a fost prezisa pt fiecare imagine
-# fisierDePredictii.to_csv(directorCuDate + "submission.csv", index=False)
+predictiiTest = clasificaImagini(numarVecini, trasaturiDateDeTest)
+fisierDePredictii = pd.DataFrame({"Image": CSVdeTest["Image"], "Class": predictiiTest})  #face fisierul unde pune clasa care a fost prezisa pt fiecare imagine
+fisierDePredictii.to_csv(directorCuDate + "submission.csv", index=False)
