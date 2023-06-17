@@ -26,6 +26,20 @@ def transformaListaInValoriDiscrete(lista, nrIntervale):
     listaIndexataDeLaZero = listaDupaTransformare - 1   #digitise are indexarea de la 1 si facem -1 ca sa avem indexare de la 0
     return listaIndexataDeLaZero
 
+
+def calculeazaAcuratete(clasePrezise, claseReale):
+    numarPredictiiCorecte = 0
+    numarImagini = len(clasePrezise)  # clasePrezise e o lista cu clasele prezise pt fiecare imagine deci nrImagini = nrClasePrezise = nrClaseReale
+
+    for i in range(numarImagini):
+        if clasePrezise[i] == claseReale[i]:
+            numarPredictiiCorecte += 1
+
+    acuratete = numarPredictiiCorecte / numarImagini
+    return acuratete
+
+
+
 def construiesteMatriceaDeConfuzie():   #se face pentru datele de validare
     matriceConfuzie = [[0 for j in range(96)] for i in range(96)]
 
@@ -40,9 +54,8 @@ def construiesteMatriceaDeConfuzie():   #se face pentru datele de validare
             print(matriceConfuzie[i][j], end=" ")
         print('\n')
 
-
-
 deschiderInitialaDeFisiere()
+modelNaiveBayes = MultinomialNB()
 valoareMaximaInterval = 256  #255 e val maxima pt ca pixelii au val maxima 255 si facem +1 pt ca e deschis la capete
 nrIntervale = 17   #am ales 16 pt ca am vazut ca da cel mai bun rezultat si am adaugat 1 pt ca deschis la capete
 capeteIntervale = np.linspace(0, valoareMaximaInterval, num=nrIntervale)
@@ -67,14 +80,11 @@ for i in range(len(numeImaginiDeValidare)):
 
 trasaturiPrelucrateValidare = transformaListaInValoriDiscrete(trasaturiImaginiDeValidare, capeteIntervale)
 
-modelNaiveBayes = MultinomialNB()
 modelNaiveBayes.fit(trasaturiPrelucrateAntrenament, claseCsvDeAntrenament)
-
 predictiiValidare = modelNaiveBayes.predict(trasaturiPrelucrateValidare)
-acuratete = accuracy_score(claseCsvDeValidare, predictiiValidare)
-
-print("Acuratete de validare: " + str(acuratete))
-construiesteMatriceaDeConfuzie()
+acuratete = calculeazaAcuratete(predictiiValidare, claseCsvDeValidare)
+print("Acuratete de validare pentru " + str(nrIntervale) + " intervale: "  + str(acuratete))
+#construiesteMatriceaDeConfuzie()
 
 #prelucram datele pt imaginile de test
 trasaturiImaginiDeTest = []

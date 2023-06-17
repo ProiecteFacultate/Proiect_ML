@@ -19,11 +19,20 @@ def deschiderInitialaDeFisiere():
     numeImaginiDeTest = CSVdeTest["Image"]  # o lista cu numele imaginilor din csvul de test
 
 
+def normalizeazaImagine(imagineCaNpArray):
+    medieImagine = np.mean(imagineCaNpArray)    #media pixelilor
+    deviatieStandard = np.std(imagineCaNpArray)
+    imagineNormalizata =  (imagineCaNpArray - medieImagine) / deviatieStandard
+    return imagineNormalizata
+
+
 def classificaOSinguraImagine(tipDistanta, numarVecini, imagineCareTrabuieTestata):
+    diferenta = trasaturiDateDeAntrenament - imagineCareTrabuieTestata
+
     if tipDistanta == 'Euclidian':
-        valoareDistanta = np.sqrt(np.sum(np.square(trasaturiDateDeAntrenament - imagineCareTrabuieTestata), axis=(1, 2, 3)))  # distanta intre 2 imagini; facem pe 3 axe pt ca imaginea e de forma nrImagini x nrPixeliPeRand x nrPixeliPeColoana x 3(RGB)
+        valoareDistanta = np.sqrt(np.sum(np.square(diferenta), axis=(1, 2, 3)))  # distanta intre 2 imagini; facem pe 3 axe pt ca imaginea e de forma 12000 x 64 x 64 x 3
     elif tipDistanta == 'Manhattan':
-        valoareDistanta = np.sum(np.abs(trasaturiDateDeAntrenament - imagineCareTrabuieTestata), axis=(1, 2, 3))
+        valoareDistanta = np.sum(np.abs(diferenta), axis=(1, 2, 3))
 
     indiciSortati = np.argsort(valoareDistanta)  # indicii celor mai apropiati vecini sunt primii
     aparitiiClase = [0 for x in range(96)]
@@ -90,28 +99,31 @@ for i in range(len(numeImaginiDeAntrenament)):
     numeImagine = numeImaginiDeAntrenament[i]
     imagine = Image.open(directorCuDate + "train_images/" + numeImagine)
     imagineCaNpArray = np.array(imagine)  # vrem sa avem datele legate de pixeli sub forma unui array din numpy
-    trasaturiDateDeAntrenament.append(imagineCaNpArray)
+    imagineNormalizata = normalizeazaImagine(imagineCaNpArray)
+    trasaturiDateDeAntrenament.append(imagineNormalizata)
 
 trasaturiDateDeValidare = []
 for i in range(len(numeImaginiDeValidare)):
     numeImagine = numeImaginiDeValidare[i]
     imagine = Image.open(directorCuDate + "val_images/" + numeImagine)
     imagineCaNpArray = np.array(imagine)  # vrem sa avem datele legate de pixeli sub forma unui array din numpy
-    trasaturiDateDeValidare.append(imagineCaNpArray)
+    imagineNormalizata = normalizeazaImagine(imagineCaNpArray)
+    trasaturiDateDeValidare.append(imagineNormalizata)
 
 trasaturiDateDeTest = []
 for i in range(len(numeImaginiDeTest)):
     numeImagine = numeImaginiDeTest[i]
     imagine = Image.open(directorCuDate + "test_images/" + numeImagine)
     imagineCaNpArray = np.array(imagine)  # vrem sa avem datele legate de pixeli sub forma unui array din numpy
-    trasaturiDateDeTest.append(imagineCaNpArray)
+    imagineNormalizata = normalizeazaImagine(imagineCaNpArray)
+    trasaturiDateDeTest.append(imagineNormalizata)
 
-predictiiValidare = clasificaImagini('Euclidian', 498, trasaturiDateDeValidare)
+numarVecini = 200
+predictiiValidare = clasificaImagini('Euclidian', numarVecini, trasaturiDateDeValidare)
 acuratete = calculeazaAcuratete(predictiiValidare, claseCsvDeValidare)
+print("Acuratete de validare pentru " + str(numarVecini) + ": " + str(acuratete))
+#construiesteMatriceaDeConfuzie()
 
-print("Acuratete de validare: " + str(acuratete))
-construiesteMatriceaDeConfuzie()
-
-predictiiTest = clasificaImagini('Euclidian', 81, trasaturiDateDeTest)
-fisierDePredictii = pd.DataFrame({"Image": CSVdeTest["Image"], "Class": predictiiTest})  #face fisierul unde pune clasa care a fost prezisa pt fiecare imagine
-fisierDePredictii.to_csv(directorCuDate + "submission.csv", index=False)
+# predictiiTest = clasificaImagini('Euclidian', 81, trasaturiDateDeTest)
+# fisierDePredictii = pd.DataFrame({"Image": CSVdeTest["Image"], "Class": predictiiTest})  #face fisierul unde pune clasa care a fost prezisa pt fiecare imagine
+# fisierDePredictii.to_csv(directorCuDate + "submission.csv", index=False)
