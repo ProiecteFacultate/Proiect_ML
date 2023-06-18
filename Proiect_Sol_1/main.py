@@ -3,6 +3,7 @@ from sklearn.naive_bayes import MultinomialNB
 import numpy as np
 from PIL import Image
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def deschiderInitialaDeFisiere():
@@ -40,7 +41,35 @@ def calculeazaAcuratete(clasePrezise, claseReale):
 
 
 
-def construiesteMatriceaDeConfuzie():   #se face pentru datele de validare
+def dateDespreAcuratete():   #se face matricea de confuzie, precision si recall
+    #precision si recall pentru fiecare clasa
+
+    for clasa in range(96):
+        truePositive = falsePositive = falseNegative = trueNegative = 0
+        for i in range(len(predictiiValidare)):
+            if predictiiValidare[i] == clasa and claseCsvDeValidare[i] == clasa:
+                truePositive += 1
+            elif predictiiValidare[i] == clasa and claseCsvDeValidare[i] != clasa:
+                falsePositive += 1
+            elif predictiiValidare[i] != clasa and claseCsvDeValidare[i] == clasa:
+                falseNegative += 1
+            else:
+                trueNegative += 1
+
+        if truePositive + falsePositive != 0:  # daca nu facem verificarea se poate primi division by zero
+            precizie = truePositive / (truePositive + falsePositive)
+        else:
+            precizie = 0
+
+        if truePositive + falseNegative != 0:
+            recall = truePositive / (truePositive + falseNegative)
+        else:
+            recall = 0
+
+        print("Pentru clasa " + str(clasa) + " avem precision = " + str("{:.3f}".format(precizie)) + " si recall = " + str("{:.3f}".format(recall)))
+
+
+    #matricea de confuzie
     matriceConfuzie = [[0 for j in range(96)] for i in range(96)]
 
     for i in range(len(predictiiValidare)):
@@ -49,17 +78,31 @@ def construiesteMatriceaDeConfuzie():   #se face pentru datele de validare
         matriceConfuzie[valoareReala][valoarePrezisa] += 1
 
     print("Matricea de confuzie:")
+
     for i in range(len(matriceConfuzie)):
         for j in range(len(matriceConfuzie[i])):
             print(matriceConfuzie[i][j], end=" ")
         print('\n')
 
+    # deseneazaMatrice(matriceConfuzie)
+
+# def deseneazaMatrice(matrice):
+#     plt.rcParams["figure.figsize"] = [50, 50]
+#     plt.rcParams["figure.autolayout"] = True
+#     fig, ax = plt.subplots()
+#     ax.matshow(matrice, cmap='binary')
+#     plt.show()
+
+
+######################## MAAIIIIIIIIIIIINNN  #######################
+
+
 deschiderInitialaDeFisiere()
 modelNaiveBayes = MultinomialNB()
 valoareMaximaInterval = 256  #255 e val maxima pt ca pixelii au val maxima 255 si facem +1 pt ca e deschis la capete
 nrIntervale = 17   #am ales 17 pt ca am vazut ca da cel mai bun rezultat
+capeteIntervale = np.linspace(0, valoareMaximaInterval, num=nrIntervale)   #generam nrIntervale valori egal distantate in intervalul [0, valoareMaximaInterval)
 
-capeteIntervale = np.linspace(0, valoareMaximaInterval, num=nrIntervale)
 # prelucram datele pt imaginile de antrenare
 trasaturiDateDeAntrenament = []
 for i in range(len(numeImaginiDeAntrenament)):
@@ -84,7 +127,7 @@ modelNaiveBayes.fit(trasaturiPrelucrateAntrenament, claseCsvDeAntrenament)
 predictiiValidare = modelNaiveBayes.predict(trasaturiPrelucrateValidare)
 acuratete = calculeazaAcuratete(predictiiValidare, claseCsvDeValidare)
 print("Acuratete de validare pentru " + str(nrIntervale) + " intervale: " + str(acuratete))
-#construiesteMatriceaDeConfuzie()
+dateDespreAcuratete()
 
 #prelucram datele pt imaginile de test
 trasaturiImaginiDeTest = []

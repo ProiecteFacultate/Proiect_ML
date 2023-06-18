@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from pandas import read_csv
 from PIL import Image
+import matplotlib.pyplot as plt
 
 def deschiderInitialaDeFisiere():
     global directorCuDate, CSVdeAntrenare, CSVdeValidare, CSVdeTest, claseCsvDeAntrenament, claseCsvDeValidare, numeImaginiDeAntrenament, numeImaginiDeValidare, numeImaginiDeTest
@@ -22,13 +23,14 @@ def deschiderInitialaDeFisiere():
 def normalizeazaImagine(imagineCaNpArray):
     medieImagine = np.mean(imagineCaNpArray)    #media pixelilor
     deviatieStandard = np.std(imagineCaNpArray)
-    imagineNormalizata =  (imagineCaNpArray - medieImagine) / deviatieStandard
+    imagineNormalizata = (imagineCaNpArray - medieImagine) / deviatieStandard
     return imagineNormalizata
 
 
 def classificaOSinguraImagine(numarVecini, imagineCareTrabuieTestata):
     diferenta = trasaturiDateDeAntrenament - imagineCareTrabuieTestata
     distanta = np.sqrt(np.sum(np.square(diferenta), axis=(1, 2, 3)))  #Euclidian; distanta intre 2 imagini; facem pe 3 axe pt ca imaginea e de forma 12000 x 64 x 64 x 3
+  #  distanta = np.sum(np.abs(trasaturiDateDeAntrenament - imagineCareTrabuieTestata), axis=(1, 2, 3))  #Manhattan
 
     indiciSortati = np.argsort(distanta)  # indicii celor mai apropiati vecini sunt primii
     aparitiiClase = [0 for x in range(96)]
@@ -71,7 +73,35 @@ def calculeazaAcuratete(clasePrezise, claseReale):
     return acuratete
 
 
-def construiesteMatriceaDeConfuzie():   #se face pentru datele de validare
+def dateDespreAcuratete():   #se face matricea de confuzie, precision si recall
+    #precision si recall pentru fiecare clasa
+
+    for clasa in range(96):
+        truePositive = falsePositive = falseNegative = trueNegative = 0
+        for i in range(len(predictiiValidare)):
+            if predictiiValidare[i] == clasa and claseCsvDeValidare[i] == clasa:
+                truePositive += 1
+            elif predictiiValidare[i] == clasa and claseCsvDeValidare[i] != clasa:
+                falsePositive += 1
+            elif predictiiValidare[i] != clasa and claseCsvDeValidare[i] == clasa:
+                falseNegative += 1
+            else:
+                trueNegative += 1
+
+        if truePositive + falsePositive != 0:   #daca nu facem verificarea se poate primi division by zero
+            precizie = truePositive / (truePositive + falsePositive)
+        else:
+            precizie = 0
+
+        if truePositive + falseNegative != 0:
+            recall = truePositive / (truePositive + falseNegative)
+        else:
+            recall = 0
+
+        print("Pentru clasa " + str(clasa) + " avem precision = " + str("{:.3f}".format(precizie)) + " si recall = " + str("{:.3f}".format(recall)))
+
+
+    #matricea de confuzie
     matriceConfuzie = [[0 for j in range(96)] for i in range(96)]
 
     for i in range(len(predictiiValidare)):
@@ -80,11 +110,20 @@ def construiesteMatriceaDeConfuzie():   #se face pentru datele de validare
         matriceConfuzie[valoareReala][valoarePrezisa] += 1
 
     print("Matricea de confuzie:")
+
     for i in range(len(matriceConfuzie)):
         for j in range(len(matriceConfuzie[i])):
             print(matriceConfuzie[i][j], end=" ")
         print('\n')
 
+#     deseneazaMatrice(matriceConfuzie)
+#
+# def deseneazaMatrice(matrice):
+#     plt.rcParams["figure.figsize"] = [50, 50]
+#     plt.rcParams["figure.autolayout"] = True
+#     fig, ax = plt.subplots()
+#     ax.matshow(matrice, cmap='binary')
+#     plt.show()
 
 ##################### MAAAIIIIIINNNNN #############
 
@@ -117,8 +156,8 @@ for i in range(len(numeImaginiDeTest)):
 numarVecini = 26
 predictiiValidare = clasificaImagini(numarVecini, trasaturiDateDeValidare)
 acuratete = calculeazaAcuratete(predictiiValidare, claseCsvDeValidare)
-print("Acuratete de validare pentru " + str(numarVecini) + ": " + str(acuratete))
-#construiesteMatriceaDeConfuzie()
+print("Acuratete de validare folosind ditanta Manhattan pentru " + str(numarVecini) + ": " + str(acuratete))
+dateDespreAcuratete()
 
 predictiiTest = clasificaImagini(numarVecini, trasaturiDateDeTest)
 fisierDePredictii = pd.DataFrame({"Image": CSVdeTest["Image"], "Class": predictiiTest})  #face fisierul unde pune clasa care a fost prezisa pt fiecare imagine
